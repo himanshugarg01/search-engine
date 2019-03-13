@@ -32,6 +32,7 @@ public:
 	char url[500];
 	list()
 	{
+		url[0]='\0';
 		next=prev=NULL;
 		visit=0;
 	}
@@ -41,11 +42,12 @@ public:
 class hash
 {
 public:
-	list *node;
+	list *node,*last_node;
 	int total_nodes;
 	hash()
 	{
 		node=NULL;
+		last_node=NULL;
 		total_nodes=0;
 	}
 };
@@ -276,12 +278,12 @@ void workOnNextUrl()
 int getIndex(char *str)
 {
 	int i,s=0;
-for(i=0;str[i]!='\0';i++)
-{
-	s=s+str[i];
-}
-s=s%100;
-return s;
+	for(i=0;str[i]!='\0';i++)
+	{
+		s=s+str[i];
+	}
+	s=s%100;
+	return s;
 }
 
 
@@ -290,32 +292,53 @@ return s;
 void makeLinkList(int index)
 {
 		updatedepth=current_node->dept+1;
-	int i=0,j,flag=0,k;
+	int value,i=0,j,flag=0,k;
 	list *ptr;
 	for(i=0;i<index;i++)
 	{
 		flag=0;
-	ptr=list_head;
-	while(ptr!=NULL)
-	{
-		if(strcmp(links[i],ptr->url)==0)
+		value=getIndex(links[i]);
+		list *x=hash_map[value].node;
+		while(x!=NULL)
 		{
-			flag=1;
-			break;
+			if(strcmp(x->url,links[i])==0)
+			{
+				flag=1;
+				break;
+			}
+			x=x->next;
 		}
-		ptr=ptr->next;
-	}
-	if(flag==0)
-	{
-		list *n;
-		n=new list();
-		strcpy(n->url,links[i]);
-		list_prev->next = n;
-		n->prev=list_prev;
-		list_prev = n;
-		n->visit=0;
-		n->dept=updatedepth;
-	}
+		if(flag==0)
+		{
+			if(hash_map[value].node==NULL)
+			{
+				list *n=new list();
+				strcpy(n->url,links[i]);
+				list_prev->next=n;
+				n->prev=list_prev;
+				list_prev=n;
+				n->dept=updatedepth;
+				n->key=value;
+				hash_map[value].node=n;
+				hash_map[value].last_node=n;
+				hash_map[value].total_nodes++;
+			}
+			else
+			{
+				list *n=new list();
+				strcpy(n->url,links[i]);
+				list *temp;
+				temp=hash_map[value].last_node;
+				n->next=temp->next;
+				n->prev=temp;
+				n->dept=updatedepth;
+				n->key=value;
+				temp->next=n;
+				hash_map[value].last_node=n;
+				hash_map[value].total_nodes++;
+
+			}
+		}
 	}
 	ptr=list_head;
 	while(ptr!=NULL)
@@ -394,57 +417,57 @@ void getFileName(char *str)
 int findFileSize()
 {
 	struct stat st; //variable which will count length of file.
-stat("/home/himanshu/Desktop/se/temp.txt",&st); // temp.txt is the file where wget fetch the html
-int file_size=st.st_size;
+	stat("/home/himanshu/Desktop/se/temp.txt",&st); // temp.txt is the file where wget fetch the html
+	int file_size=st.st_size;
 
-return file_size;
+	return file_size;
 }
 
 
 void copyFile()
 {
-	char *str;
-	str=new char[500];
-	getFileName(str);
+		char *str;
+		str=new char[500];
+		getFileName(str);
 	//cout<<endl<<endl<<endl<<"copyfile"<<endl<<endl<<endl;
-//	cout<<endl<<endl<<endl<<str<<endl<<endl<<endl;
-	char x[1000];
-  ifstream fin;
-  ofstream fout;
-  fin.open("/home/himanshu/Desktop/se/temp.txt");
-  fout.open(str);
-	fout<<current_node->url<<" "<<depth<<endl;
-	int fsize=findFileSize();
-	char *html_buffer;
-	html_buffer=(char *)malloc(fsize+1);
-	fin>>html_buffer;
-	while(!fin.eof())
-	{
-	fin>>x;
-	strcat(html_buffer,x);
-	}
-	fout<<html_buffer;
-  fout.close();
-  fin.close();
-	html_buffer[fsize]='\0';
-	fsize++;
-	free(str);
-	makeList(html_buffer,fsize);
-	free(html_buffer);
+	//	cout<<endl<<endl<<endl<<str<<endl<<endl<<endl;
+		char x[1000];
+	  ifstream fin;
+	  ofstream fout;
+	  fin.open("/home/himanshu/Desktop/se/temp.txt");
+	  fout.open(str);
+		fout<<current_node->url<<" "<<depth<<endl;
+		int fsize=findFileSize();
+		char *html_buffer;
+		html_buffer=(char *)malloc(fsize+1);
+		fin>>html_buffer;
+		while(!fin.eof())
+		{
+		fin>>x;
+		strcat(html_buffer,x);
+		}
+		fout<<html_buffer;
+	  fout.close();
+	  fin.close();
+		html_buffer[fsize]='\0';
+		fsize++;
+		free(str);
+		makeList(html_buffer,fsize);
+		free(html_buffer);
 
 }
 
 
 void getPage(char *url)
 {
-char urlbuffer[Url_Length+300]={0};
-strcat(urlbuffer, "wget -O ");
-strcat(urlbuffer,"/home/himanshu/Desktop/se/temp.txt ");
-strcat(urlbuffer, url);
-//strcat(urlbuffer, " --proxy-user=user1 --proxy-password=user1");
-system(urlbuffer);
-//cout<<endl<<endl<<endl<<"getPage"<<endl<<endl<<endl;
-copyFile();
+	char urlbuffer[Url_Length+300]={0};
+	strcat(urlbuffer, "wget -O ");
+	strcat(urlbuffer,"/home/himanshu/Desktop/se/temp.txt ");
+	strcat(urlbuffer, url);
+	//strcat(urlbuffer, " --proxy-user=user1 --proxy-password=user1");
+	system(urlbuffer);
+	//cout<<endl<<endl<<endl<<"getPage"<<endl<<endl<<endl;
+	copyFile();
 }
 
 
@@ -493,8 +516,8 @@ void checkDepth()
 
 void validateUrl(char *strn)
 {
-char str[strlen(strn)+20]="wget --spider ";
-strcat(str,strn);
+	char str[strlen(strn)+20]="wget --spider ";
+	strcat(str,strn);
     if(!system(str))
     {
     printf("Valid URL");
@@ -513,35 +536,35 @@ strcat(str,strn);
 
 void checkUrl()
 {
-int i,flag=0;
-for(i=0;base_url[i]!='\0';i++)
-{
-  if(base_url[i]!=str1[i])
-  {
-    flag=1;
-      printf("Invalid url");
-    break;
-  }
-}
-if(flag==0)
-{
-  validateUrl(str1);
-}
+	int i,flag=0;
+	for(i=0;base_url[i]!='\0';i++)
+	{
+	  if(base_url[i]!=str1[i])
+	  {
+	    flag=1;
+	      printf("Invalid url");
+	    break;
+	  }
+	}
+	if(flag==0)
+	{
+	  validateUrl(str1);
+	}
 }
 
 
 void checkCreteria(int n)
 {
-  if(n==4)
-  {
-checkDepth();
-checkUrl();
-testDir(str3);
-  }
-  else
-  {
-    printf("Invalid input");
-  }
+	  if(n==4)
+	  {
+	checkDepth();
+	checkUrl();
+	testDir(str3);
+	  }
+	  else
+	  {
+	    printf("Invalid input");
+	  }
 }
 
 
